@@ -769,6 +769,20 @@ std::pair<long, std::vector<char>> common_remote_get_content(const std::string  
 
 #if defined(LLAMA_USE_CURL) || defined(LLAMA_USE_HTTPLIB)
 
+std::vector<char> common_remote_get_file(const std::string & url) {
+    common_remote_params params;
+    params.max_size = 1024 * 1024 * 10; // 10MB
+    params.timeout  = 10; // seconds
+    auto [http_code, data] = common_remote_get_content(url, params);
+    if (http_code < 200 || http_code >= 300) {
+        throw std::runtime_error("HTTP error " + std::to_string(http_code));
+    }
+    if (data.empty()) {
+        throw std::runtime_error("empty response");
+    }
+    return data;
+}
+
 static bool common_download_file_single(const std::string & url,
                                         const std::string & path,
                                         const std::string & bearer_token,
@@ -1093,6 +1107,10 @@ bool common_download_model(const common_params_model &, const std::string &, boo
 }
 
 std::string common_docker_resolve_model(const std::string &) {
+    throw std::runtime_error("download functionality is not enabled in this build");
+}
+
+std::vector<char> common_remote_get_file(const std::string &) {
     throw std::runtime_error("download functionality is not enabled in this build");
 }
 

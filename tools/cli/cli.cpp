@@ -140,36 +140,6 @@ struct cli_context {
         return curr_content;
     }
 
-    bool load_data_from_url(const std::string & url, std::vector<char> & out) {
-#if defined(LLAMA_USE_CURL) || defined(LLAMA_USE_HTTPLIB)
-        try {
-            common_remote_params params;
-            params.headers.push_back("User-Agent: llama.cpp/" + build_info);
-            params.max_size = 1024 * 1024 * 10; // 10MB
-            params.timeout  = 10; // seconds
-            auto [http_code, data] = common_remote_get_content(url, params);
-            if (http_code != 200) {
-                console::error("Failed to fetch from URL: %s, HTTP code: %ld\n", url.c_str(), http_code);
-                return false;
-            }
-            if (data.empty()) {
-                console::error("Fetched empty content from URL: %s\n", url.c_str());
-                return false;
-            }
-            out = std::move(data);
-            return true;
-        } catch (const std::exception & e) {
-            console::error("Exception while fetching from URL: %s, error: %s\n", url.c_str(), e.what());
-            return false;
-        }
-#else
-        console::error("Network support is disabled. Compile with LLAMA_USE_CURL or LLAMA_USE_HTTPLIB to enable URL loading.\n");
-        GGML_UNUSED(url);
-        GGML_UNUSED(out);
-        return false;
-#endif
-    }
-
     bool load_data_from_file(const std::string & path, std::vector<char> & out) {
         std::ifstream file(path, std::ios::binary);
         if (!file) {
@@ -188,15 +158,17 @@ struct cli_context {
 
         std::vector<char> data;
 
-        bool success = false;
         if (is_url(source)) {
-            success = load_data_from_url(source, data);
+            try {
+                data = common_remote_get_file(source);
+            } catch (const std::exception & e) {
+                console::error("Failed to fetch from URL: %s, error: %s\n", source.c_str(), e.what());
+                return "";
+            }
         } else {
-            success = load_data_from_file(source, data);
-        }
-
-        if (!success) {
-            return "";
+            if (!load_data_from_file(source, data)) {
+                return "";
+            }
         }
 
         if (is_media) {

@@ -137,3 +137,7 @@ struct common_remote_params {
 };
 // get remote file content, returns <http_code, raw_response_body>
 std::pair<long, std::vector<char>> common_remote_get_content(const std::string & url, const common_remote_params & params);
+
+// load content from a URL with default params (10MB max, 10s timeout)
+// throws std::runtime_error on failure
+std::vector<char> common_remote_get_file(const std::string & url);
