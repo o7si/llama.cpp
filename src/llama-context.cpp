@@ -265,6 +265,11 @@ llama_context::llama_context(
                 __func__, cparams.n_ctx_seq, hparams.n_ctx_train);
     }
 
+    if (!model.layers.empty() && model.layers[0].rope_long != nullptr && cparams.n_ctx_seq > hparams.n_ctx_orig_yarn) {
+        LLAMA_LOG_WARN("%s: n_ctx_seq (%u) > n_ctx_orig_yarn (%u) -- long rope factors will be used for all inputs\n",
+                __func__, cparams.n_ctx_seq, hparams.n_ctx_orig_yarn);
+    }
+
     if (!hparams.vocab_only) {
         // GPU backends
         for (const auto & dev : model.devices) {
